@@ -108,20 +108,25 @@
             60% { transform: translateY(-7px); }
         }
 
-        .rain {
+        /* 통통한 버튼 형태의 비가 내리도록 수정 */
+        .rain-btn {
             position: fixed;
-            top: -50px;
-            color: var(--main-pink);
+            top: -100px; /* 화면 한참 위에서 시작 */
+            background: var(--main-pink);
+            color: white;
+            padding: 12px 25px;
+            font-size: 1rem;
             font-weight: bold;
-            font-size: 1.5rem;
+            border: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(255, 107, 129, 0.4);
             z-index: 1000;
-            pointer-events: none; 
+            pointer-events: none; /* 클릭을 방해하지 않음 */
             animation: fall linear forwards;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         @keyframes fall {
-            to { transform: translateY(110vh) rotate(360deg); }
+            to { transform: translateY(120vh) rotate(360deg); }
         }
     </style>
 </head>
@@ -162,8 +167,8 @@
         let bounceInterval;
         
         let posX, posY;
-        let velocityX = 6; // 모바일에서도 클릭 시도를 해볼 만한 깐족거리는 속도
-        let velocityY = 6;
+        let velocityX = 7;
+        let velocityY = 7;
 
         const messages = [
             "¿De verdad? 🥺",               
@@ -177,12 +182,11 @@
             "¡SÍ!"                        
         ];
 
-        // 화면 중앙을 기준으로 '안전 반경(박스)' 내에서만 이동하게 제한하는 함수
         function getSafeZone() {
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
-            const radiusX = Math.min(120, window.innerWidth / 3); // 가로 한계치
-            const radiusY = Math.min(150, window.innerHeight / 3); // 세로 한계치
+            const radiusX = Math.min(120, window.innerWidth / 3); 
+            const radiusY = Math.min(150, window.innerHeight / 3); 
 
             return {
                 minX: centerX - radiusX,
@@ -192,7 +196,7 @@
             };
         }
 
-        // 5~6단계: 화면 중앙 근처에서만 텔레포트
+        // 5~6단계: 텔레포트
         function teleportButton() {
             noBtn.style.position = 'fixed';
             const safeZone = getSafeZone();
@@ -204,42 +208,36 @@
             noBtn.style.top = `${randomY}px`;
         }
 
-        // 8단계: 화면 중앙 근처 보이지 않는 박스 안에서만 튕겨 다니기
+        // 8단계: 튕기기
         function startBouncing() {
-            // 현재 위치 저장
-            posX = noBtn.getBoundingClientRect().left;
-            posY = noBtn.getBoundingClientRect().top;
-            
             bounceInterval = setInterval(() => {
                 const safeZone = getSafeZone();
 
                 posX += velocityX;
                 posY += velocityY;
 
-                // 중앙 박스 경계에 닿으면 튕김
                 if (posX <= safeZone.minX || posX >= safeZone.maxX) velocityX *= -1;
                 if (posY <= safeZone.minY || posY >= safeZone.maxY) velocityY *= -1;
 
-                // 오차 보정 (박스 밖으로 나가는 것 원천 차단)
                 posX = Math.max(safeZone.minX, Math.min(posX, safeZone.maxX));
                 posY = Math.max(safeZone.minY, Math.min(posY, safeZone.maxY));
 
                 noBtn.style.left = `${posX}px`;
                 noBtn.style.top = `${posY}px`;
-            }, 20); // 프레임 속도를 올려서 부드럽고 얄밉게 이동
+            }, 20); 
         }
 
-        // 9단계: YES 비 내리기
+        // 9단계: YES '블록' 비 내리기
         function startYesRain() {
-            for(let i = 0; i < 60; i++) {
+            for(let i = 0; i < 50; i++) {
                 setTimeout(() => {
-                    let rain = document.createElement('div');
-                    rain.innerText = '¡SÍ! 💖';
-                    rain.classList.add('rain');
+                    let rain = document.createElement('button'); // div가 아닌 실제 버튼 요소를 만듦
+                    rain.innerText = '¡SÍ!';
+                    rain.classList.add('rain-btn'); // 새로운 클래스 적용
                     rain.style.left = Math.random() * 90 + 'vw';
                     rain.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
                     document.body.appendChild(rain);
-                }, i * 50); 
+                }, i * 60); 
             }
         }
 
@@ -265,38 +263,65 @@
                 if(noClickCount === 4) mainEmoji.innerText = "🚑💦";
             } 
             
-            // 5~6단계: 화면 중앙 구역에서만 텔레포트
+            // 5~6단계: 화면 중앙 구역에서 텔레포트
             else if (noClickCount === 5 || noClickCount === 6) {
                 noBtn.style.transform = `scale(1)`; 
                 teleportButton();
             } 
             
-            // 7단계: Yes와 위치 바꾸기
+            // 7단계: 위치 완벽하게 바꾸기
             else if (noClickCount === 7) {
+                // NO가 있던 현재 위치를 저장
+                let noCurrentLeft = noBtn.style.left;
+                let noCurrentTop = noBtn.style.top;
+
+                // NO 버튼은 다시 원래 자리(중앙 박스)로 복귀
                 noBtn.style.position = 'static'; 
-                btnContainer.style.flexDirection = 'row-reverse'; 
+
+                // YES 버튼이 NO가 있던 텔레포트 자리로 날아감
+                yesBtn.style.position = 'fixed';
+                yesBtn.style.left = noCurrentLeft;
+                yesBtn.style.top = noCurrentTop;
+
                 mainEmoji.innerText = "👀⁉️";
             } 
             
-            // 8단계: 중앙 박스 안에서만 튕겨 다니기
+            // 8단계: NO 버튼 중앙에서부터 튕겨 다니기 시작
             else if (noClickCount === 8) {
+                // NO를 튕기게 하기 위해 중앙에서의 현재 좌표를 잡고 fixed로 변환
+                const rect = noBtn.getBoundingClientRect();
+                posX = rect.left;
+                posY = rect.top;
+                
                 noBtn.style.position = 'fixed';
+                noBtn.style.left = `${posX}px`;
+                noBtn.style.top = `${posY}px`;
+
                 mainEmoji.innerText = "🏃‍♀️💨";
                 startBouncing();
             } 
             
-            // 9단계: YES로 변신 & 비 내리기
+            // 9단계: 대반전 (모두 중앙에서 YES 쌍둥이로 변신)
             else if (noClickCount >= 9) {
                 clearInterval(bounceInterval); 
-                noBtn.style.position = 'static'; 
-                btnContainer.style.flexDirection = 'row'; 
                 
+                // 1. 둘 다 다시 중앙(static)으로 집합
+                noBtn.style.position = 'static'; 
+                yesBtn.style.position = 'static'; 
+                
+                // 2. 크기(scale)를 1로 똑같이 초기화
+                yesBtn.style.transform = 'scale(1)';
+                noBtn.style.transform = 'scale(1)';
+                
+                // 3. NO 버튼을 YES 버튼과 완벽하게 똑같이 위장
                 noBtn.style.background = 'var(--main-pink)';
                 noBtn.style.boxShadow = '0 4px 15px rgba(255, 107, 129, 0.4)';
                 
+                // 4. 블록 형태의 YES 비 내리기
                 startYesRain();
                 mainEmoji.innerText = "🥰🎉";
                 
+                // 클릭하면 성공 화면으로!
                 noBtn.addEventListener('click', showSuccess);
             }
         });
