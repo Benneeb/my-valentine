@@ -18,7 +18,6 @@
 
         body {
             margin: 0;
-            /* overflow: hidden을 제거하고 min-height를 주어 버튼이 커지면 스크롤되도록 수정 */
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -28,6 +27,7 @@
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
+            overflow: hidden; /* 도망가는 버튼이 스크롤 바를 만들지 않게 함 */
         }
 
         .v-container {
@@ -41,7 +41,6 @@
             transition: all 0.3s ease;
         }
 
-        /* GIF 대신 이모지를 사용하는 컨테이너 */
         .emoji-container {
             font-size: 5rem;
             margin-bottom: 15px;
@@ -63,7 +62,6 @@
             line-height: 1.5;
         }
 
-        /* 플렉스 랩을 적용하여 YES가 커지면 NO가 자연스럽게 밑으로 밀려남 */
         .options {
             display: flex;
             flex-wrap: wrap;
@@ -92,6 +90,7 @@
         #noBtn { 
             background: #adb5bd; 
             color: white; 
+            z-index: 100; /* 도망다닐 때 다른 요소 위로 올라오게 설정 */
         }
 
         .hidden { display: none !important; }
@@ -136,11 +135,11 @@
         const sPage = document.getElementById('celebration-page');
         const mainEmoji = document.getElementById('mainEmoji');
 
-        // transform: scale 대신 폰트 사이즈와 패딩을 조절하여 요소가 겹치지 않게 만듭니다.
-        let yesFontSize = 1; // rem 단위
-        let yesPadY = 12; // px 단위
-        let yesPadX = 25; // px 단위
+        let yesFontSize = 1; 
+        let yesPadY = 12; 
+        let yesPadX = 25; 
         let noClickCount = 0;
+        let dodgeMode = false; // 도망 모드 활성화 여부
 
         const messages = [
             "¿De verdad, futura doctora? 🥺", 
@@ -151,30 +150,67 @@
             "¡Ya ríndete y di que SÍ! 💖"
         ];
 
+        // NO 버튼을 랜덤한 위치로 도망치게 만드는 함수
+        function moveNoButton() {
+            noBtn.style.position = 'fixed'; // 화면 전체를 기준으로 이동
+            
+            // 버튼이 화면 밖으로 나가지 않도록 여유 공간(20px) 계산
+            const maxX = window.innerWidth - noBtn.offsetWidth - 20;
+            const maxY = window.innerHeight - noBtn.offsetHeight - 20;
+
+            const randomX = Math.max(10, Math.random() * maxX);
+            const randomY = Math.max(10, Math.random() * maxY);
+
+            noBtn.style.left = `${randomX}px`;
+            noBtn.style.top = `${randomY}px`;
+        }
+
+        // NO 버튼 클릭 시
         noBtn.addEventListener('click', () => {
             noClickCount++;
             
-            // 1. YES 버튼 겹침 현상 해결: 크기를 키우면 옆/아래 요소를 밀어내도록 설정
+            // 1. YES 버튼 계속 키우기
             yesFontSize += 0.5;
             yesPadY += 8;
             yesPadX += 15;
-            
             yesBtn.style.fontSize = `${yesFontSize}rem`;
             yesBtn.style.padding = `${yesPadY}px ${yesPadX}px`;
             
-            // 2. 메시지 바꾸기
+            // 2. 메시지 변경
             if(noClickCount <= messages.length) {
                 noBtn.innerText = messages[noClickCount-1];
             } else {
-                noBtn.innerText = "¡Es tu única opción! 😂"; 
+                noBtn.innerText = "¡Atrápame si puedes! 😜"; // 날 잡아봐라!
             }
 
-            // 3. 누를 때마다 귀엽게 당황하는 이모지로 변경
+            // 3. 이모지 변경
             if(noClickCount === 2) mainEmoji.innerText = "🥺🩺";
             if(noClickCount === 4) mainEmoji.innerText = "🚑💦";
             if(noClickCount === 6) mainEmoji.innerText = "😭💖";
+
+            // 4. 클릭할 때마다 도망가기
+            moveNoButton();
+
+            // 5. 2번 이상 누르면 악랄한 '도망 모드' 발동
+            if(noClickCount >= 2) {
+                dodgeMode = true;
+            }
         });
 
+        // [PC] 마우스가 버튼 근처에 오면 도망가기
+        noBtn.addEventListener('mouseenter', () => {
+            if (dodgeMode) moveNoButton();
+        });
+
+        // [모바일] 손가락으로 터치하려고 하면 클릭되기도 전에 도망가기
+        noBtn.addEventListener('touchstart', (e) => {
+            if (dodgeMode) {
+                moveNoButton();
+                e.preventDefault(); // 실제 클릭(터치)이 인식되지 않도록 막음
+            }
+        });
+
+        // YES 버튼 클릭 시 성공 화면
         yesBtn.addEventListener('click', () => {
             qPage.classList.add('hidden');
             sPage.classList.remove('hidden');
