@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <meta property="og:title" content="너에게 도착한 비밀 편지 💌">
-    <meta property="og:description" content="꼭 끝까지 확인해봐!">
+    <meta property="og:title" content="Para la futura doctora Mari 🩺💌">
+    <meta property="og:description" content="¡Tengo una pregunta muy importante para ti!">
     <meta property="og:image" content="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=500&auto=format&fit=crop">
     
-    <title>Will You Be My Valentine?</title>
+    <title>Para Mari 💖</title>
     <style>
         :root {
             --bg-color: #ffeef2;
@@ -23,24 +23,24 @@
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, var(--bg-color) 0%, #fff0f5 100%);
-            font-family: sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             overflow: hidden;
+            text-align: center;
         }
 
         .v-container {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 30px;
-            padding: 40px;
-            text-align: center;
+            padding: 35px;
             width: 85%;
-            max-width: 400px;
+            max-width: 420px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
 
         .gif-container {
             width: 100%;
-            height: 200px;
+            height: 180px;
             margin-bottom: 20px;
             display: flex;
             justify-content: center;
@@ -54,10 +54,18 @@
         }
 
         .question {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
             color: var(--main-pink);
-            margin-bottom: 30px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .compliment {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.5;
         }
 
         .options {
@@ -65,7 +73,7 @@
             justify-content: center;
             align-items: center;
             gap: 15px;
-            min-height: 150px; /* YES 버튼이 커질 공간 확보 */
+            min-height: 150px;
         }
 
         button {
@@ -83,8 +91,8 @@
 
         .hidden { display: none !important; }
 
-        /* 결과 화면 스타일 */
-        #celebration-page h1 { font-size: 2.5rem; color: var(--main-pink); }
+        #celebration-page h1 { font-size: 2.2rem; color: var(--main-pink); margin-bottom: 10px;}
+        #celebration-page p { font-size: 1.1rem; color: #444; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -93,9 +101,10 @@
         <div class="gif-container">
             <img id="mainGif" src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3R4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cLS1cfxvGOPVpf9g3y/giphy.gif" alt="cute bear">
         </div>
-        <div id="msg" class="question">Will you be my Valentine? 💖</div>
+        <div class="question">Mari, con esa sonrisa tan encantadora y un corazón tan hermoso... 💖</div>
+        <div class="compliment">¿Quieres ser mi San Valentín?</div>
         <div class="options">
-            <button id="yesBtn">YES!</button>
+            <button id="yesBtn">¡SÍ!</button>
             <button id="noBtn">No...</button>
         </div>
     </div>
@@ -104,8 +113,11 @@
         <div class="gif-container">
             <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3R4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/26BRv0ThflsHCqfJA/giphy.gif" alt="success bear">
         </div>
-        <h1>I knew it! 🥰</h1>
-        <p style="color: #ff6b81; font-weight: bold;">우리 꼭 맛있는 거 먹자! 🍫🌹</p>
+        <h1>¡Lo sabía! 🥰</h1>
+        <p>
+            ¡Salgamos a comer algo delicioso para recargar energías! 🍫🌹<br><br>
+            <strong>¡Mucho ánimo con tus estudios de medicina, futura doctora! Siempre te apoyo. 🩺✨</strong>
+        </p>
     </div>
 
     <script>
@@ -113,29 +125,36 @@
         const noBtn = document.getElementById('noBtn');
         const qPage = document.getElementById('question-page');
         const sPage = document.getElementById('celebration-page');
-        const msg = document.getElementById('msg');
         const mainGif = document.getElementById('mainGif');
 
         let yesScale = 1;
         let noClickCount = 0;
 
-        const messages = ["정말루? 🥺", "생각해봐..", "진짜 안돼?", "자꾸 이러면..", "YES 버튼만 보일걸?", "그냥 눌러줘! 💖"];
+        // 의대생 Mari를 위한 맞춤형 거절 반응 메시지
+        const messages = [
+            "¿De verdad, futura doctora? 🥺", 
+            "Sé que estudiar medicina es duro, pero...", 
+            "¡Te prometo mucha energía para estudiar! ☕", 
+            "¡Tu hermosa sonrisa merece un SÍ!", 
+            "¿En serio vas a rechazarme? 🚑", 
+            "¡Ya ríndete y di que SÍ! 💖"
+        ];
 
         noBtn.addEventListener('click', () => {
             noClickCount++;
             
-            // 1. YES 버튼 키우기 (더 크게!)
+            // YES 버튼 키우기
             yesScale += 0.6;
             yesBtn.style.transform = `scale(${yesScale})`;
             
-            // 2. 메시지 바꾸기
+            // 메시지 바꾸기
             if(noClickCount <= messages.length) {
                 noBtn.innerText = messages[noClickCount-1];
             } else {
-                noBtn.innerText = "이제 포기해! 😂";
+                noBtn.innerText = "¡Es tu única opción! 😂"; // 유일한 선택지야!
             }
 
-            // 3. 이미지 살짝 당황하는 걸로 변경
+            // 당황하는 이미지로 변경
             if(noClickCount === 3) {
                 mainGif.src = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHpueGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cLS1cfxvGOPVpf9g3y/giphy.gif"; 
             }
