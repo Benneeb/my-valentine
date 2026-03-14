@@ -13,19 +13,21 @@
         :root {
             --bg-color: #ffeef2;
             --main-pink: #ff6b81;
-            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(255, 255, 255, 0.7);
         }
 
         body {
             margin: 0;
-            height: 100vh;
+            /* overflow: hidden을 제거하고 min-height를 주어 버튼이 커지면 스크롤되도록 수정 */
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, var(--bg-color) 0%, #fff0f5 100%);
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            overflow: hidden;
             text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .v-container {
@@ -33,47 +35,41 @@
             backdrop-filter: blur(10px);
             border-radius: 30px;
             padding: 35px;
-            width: 85%;
-            max-width: 420px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-
-        .gif-container {
             width: 100%;
-            height: 180px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
         }
 
-        .gif-container img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 15px;
+        /* GIF 대신 이모지를 사용하는 컨테이너 */
+        .emoji-container {
+            font-size: 5rem;
+            margin-bottom: 15px;
+            animation: bounce 2s infinite;
         }
 
         .question {
             font-size: 1.5rem;
             font-weight: bold;
             color: var(--main-pink);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             line-height: 1.4;
         }
         
         .compliment {
             font-size: 1.1rem;
             color: #555;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             line-height: 1.5;
         }
 
+        /* 플렉스 랩을 적용하여 YES가 커지면 NO가 자연스럽게 밑으로 밀려남 */
         .options {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
             gap: 15px;
-            min-height: 150px;
         }
 
         button {
@@ -86,23 +82,38 @@
             transition: all 0.2s ease;
         }
 
-        #yesBtn { background: var(--main-pink); color: white; z-index: 10; }
-        #noBtn { background: #adb5bd; color: white; }
+        #yesBtn { 
+            background: var(--main-pink); 
+            color: white; 
+            z-index: 10; 
+            box-shadow: 0 4px 15px rgba(255, 107, 129, 0.4);
+        }
+        
+        #noBtn { 
+            background: #adb5bd; 
+            color: white; 
+        }
 
         .hidden { display: none !important; }
 
         #celebration-page h1 { font-size: 2.2rem; color: var(--main-pink); margin-bottom: 10px;}
         #celebration-page p { font-size: 1.1rem; color: #444; line-height: 1.5; }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-15px); }
+            60% { transform: translateY(-7px); }
+        }
     </style>
 </head>
 <body>
 
     <div id="question-page" class="v-container">
-        <div class="gif-container">
-            <img id="mainGif" src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3R4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cLS1cfxvGOPVpf9g3y/giphy.gif" alt="cute bear">
-        </div>
-        <div class="question">Mari, con esa sonrisa tan encantadora y un corazón tan hermoso... 💖</div>
+        <div id="mainEmoji" class="emoji-container">🧸💖</div>
+        
+        <div class="question">Mari, con esa sonrisa tan encantadora y un corazón tan hermoso...</div>
         <div class="compliment">¿Quieres ser mi San Valentín?</div>
+        
         <div class="options">
             <button id="yesBtn">¡SÍ!</button>
             <button id="noBtn">No...</button>
@@ -110,9 +121,7 @@
     </div>
 
     <div id="celebration-page" class="v-container hidden">
-        <div class="gif-container">
-            <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3R4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/26BRv0ThflsHCqfJA/giphy.gif" alt="success bear">
-        </div>
+        <div class="emoji-container">🥰🎉</div>
         <h1>¡Lo sabía! 🥰</h1>
         <p>
             ¡Salgamos a comer algo delicioso para recargar energías! 🍫🌹<br><br>
@@ -125,12 +134,14 @@
         const noBtn = document.getElementById('noBtn');
         const qPage = document.getElementById('question-page');
         const sPage = document.getElementById('celebration-page');
-        const mainGif = document.getElementById('mainGif');
+        const mainEmoji = document.getElementById('mainEmoji');
 
-        let yesScale = 1;
+        // transform: scale 대신 폰트 사이즈와 패딩을 조절하여 요소가 겹치지 않게 만듭니다.
+        let yesFontSize = 1; // rem 단위
+        let yesPadY = 12; // px 단위
+        let yesPadX = 25; // px 단위
         let noClickCount = 0;
 
-        // 의대생 Mari를 위한 맞춤형 거절 반응 메시지
         const messages = [
             "¿De verdad, futura doctora? 🥺", 
             "Sé que estudiar medicina es duro, pero...", 
@@ -143,21 +154,25 @@
         noBtn.addEventListener('click', () => {
             noClickCount++;
             
-            // YES 버튼 키우기
-            yesScale += 0.6;
-            yesBtn.style.transform = `scale(${yesScale})`;
+            // 1. YES 버튼 겹침 현상 해결: 크기를 키우면 옆/아래 요소를 밀어내도록 설정
+            yesFontSize += 0.5;
+            yesPadY += 8;
+            yesPadX += 15;
             
-            // 메시지 바꾸기
+            yesBtn.style.fontSize = `${yesFontSize}rem`;
+            yesBtn.style.padding = `${yesPadY}px ${yesPadX}px`;
+            
+            // 2. 메시지 바꾸기
             if(noClickCount <= messages.length) {
                 noBtn.innerText = messages[noClickCount-1];
             } else {
-                noBtn.innerText = "¡Es tu única opción! 😂"; // 유일한 선택지야!
+                noBtn.innerText = "¡Es tu única opción! 😂"; 
             }
 
-            // 당황하는 이미지로 변경
-            if(noClickCount === 3) {
-                mainGif.src = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHpueGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZzR4eGZ4bm9oZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cLS1cfxvGOPVpf9g3y/giphy.gif"; 
-            }
+            // 3. 누를 때마다 귀엽게 당황하는 이모지로 변경
+            if(noClickCount === 2) mainEmoji.innerText = "🥺🩺";
+            if(noClickCount === 4) mainEmoji.innerText = "🚑💦";
+            if(noClickCount === 6) mainEmoji.innerText = "😭💖";
         });
 
         yesBtn.addEventListener('click', () => {
