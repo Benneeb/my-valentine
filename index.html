@@ -18,7 +18,7 @@
 
         body {
             margin: 0;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -27,7 +27,7 @@
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
-            overflow: hidden; /* 도망가는 버튼이 스크롤 바를 만들지 않게 함 */
+            overflow: hidden; /* 화면 밖으로 나가지 않도록 고정 */
         }
 
         .v-container {
@@ -39,10 +39,12 @@
             max-width: 450px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
         }
 
         .emoji-container {
-            font-size: 5rem;
+            font-size: 4.5rem;
             margin-bottom: 15px;
             animation: bounce 2s infinite;
         }
@@ -64,10 +66,10 @@
 
         .options {
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
             gap: 15px;
+            transition: all 0.3s ease;
         }
 
         button {
@@ -77,20 +79,22 @@
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease, background-color 0.3s ease;
         }
 
         #yesBtn { 
             background: var(--main-pink); 
             color: white; 
-            z-index: 10; 
+            z-index: 20; 
             box-shadow: 0 4px 15px rgba(255, 107, 129, 0.4);
+            white-space: nowrap;
         }
         
         #noBtn { 
             background: #adb5bd; 
             color: white; 
-            z-index: 100; /* 도망다닐 때 다른 요소 위로 올라오게 설정 */
+            z-index: 100; /* 도망다닐 때 맨 위에 오도록 */
+            white-space: nowrap;
         }
 
         .hidden { display: none !important; }
@@ -103,6 +107,23 @@
             40% { transform: translateY(-15px); }
             60% { transform: translateY(-7px); }
         }
+
+        /* 쏟아지는 YES 비 애니메이션 */
+        .rain {
+            position: fixed;
+            top: -50px;
+            color: var(--main-pink);
+            font-weight: bold;
+            font-size: 1.5rem;
+            z-index: 1000;
+            pointer-events: none; /* 클릭 방해 안 함 */
+            animation: fall linear forwards;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -113,7 +134,7 @@
         <div class="question">Mari, con esa sonrisa tan encantadora y un corazón tan hermoso...</div>
         <div class="compliment">¿Quieres ser mi San Valentín?</div>
         
-        <div class="options">
+        <div id="btnContainer" class="options">
             <button id="yesBtn">¡SÍ!</button>
             <button id="noBtn">No...</button>
         </div>
@@ -131,90 +152,156 @@
     <script>
         const yesBtn = document.getElementById('yesBtn');
         const noBtn = document.getElementById('noBtn');
+        const btnContainer = document.getElementById('btnContainer');
         const qPage = document.getElementById('question-page');
         const sPage = document.getElementById('celebration-page');
         const mainEmoji = document.getElementById('mainEmoji');
 
-        let yesFontSize = 1; 
-        let yesPadY = 12; 
-        let yesPadX = 25; 
         let noClickCount = 0;
-        let dodgeMode = false; // 도망 모드 활성화 여부
+        let yesScale = 1;
+        let noScale = 1;
+        let bounceInterval;
+        
+        // 튕기는 애니메이션을 위한 변수
+        let posX, posY;
+        let velocityX = 8; // 이동 속도
+        let velocityY = 8;
 
+        // 거절 시 단계별 메시지
         const messages = [
-            "¿De verdad, futura doctora? 🥺", 
-            "Sé que estudiar medicina es duro, pero...", 
-            "¡Te prometo mucha energía para estudiar! ☕", 
-            "¡Tu hermosa sonrisa merece un SÍ!", 
-            "¿En serio vas a rechazarme? 🚑", 
-            "¡Ya ríndete y di que SÍ! 💖"
+            "¿De verdad? 🥺",               // 1번
+            "Piénsalo bien...",            // 2번
+            "¡Eres muy cruel! 🚑",         // 3번
+            "¡Mi corazón sufre! 💔",       // 4번
+            "¡Me escapo! 💨",             // 5번 (텔레포트 1)
+            "¡Aquí estoy! 😜",            // 6번 (텔레포트 2)
+            "¡Cambio de lugar! ✨",        // 7번 (자리 바꾸기)
+            "¡Atrápame si puedes! 🏃‍♀️",    // 8번 (튕겨 다니기)
+            "¡SÍ!"                        // 9번 (YES로 변신)
         ];
 
-        // NO 버튼을 랜덤한 위치로 도망치게 만드는 함수
-        function moveNoButton() {
-            noBtn.style.position = 'fixed'; // 화면 전체를 기준으로 이동
-            
-            // 버튼이 화면 밖으로 나가지 않도록 여유 공간(20px) 계산
-            const maxX = window.innerWidth - noBtn.offsetWidth - 20;
-            const maxY = window.innerHeight - noBtn.offsetHeight - 20;
+        // 화면 밖으로 안 나가게 안전하게 순간이동 하는 함수
+        function teleportButton() {
+            noBtn.style.position = 'fixed';
+            // 버튼 크기를 뺀 화면 내 안전 영역 계산
+            const maxX = Math.max(0, window.innerWidth - noBtn.offsetWidth - 20);
+            const maxY = Math.max(0, window.innerHeight - noBtn.offsetHeight - 20);
 
-            const randomX = Math.max(10, Math.random() * maxX);
-            const randomY = Math.max(10, Math.random() * maxY);
+            const randomX = Math.random() * maxX + 10;
+            const randomY = Math.random() * maxY + 10;
 
             noBtn.style.left = `${randomX}px`;
             noBtn.style.top = `${randomY}px`;
         }
 
-        // NO 버튼 클릭 시
+        // 화면 벽에 부딪히며 튕기는 함수
+        function startBouncing() {
+            // 현재 위치에서 시작
+            posX = noBtn.getBoundingClientRect().left;
+            posY = noBtn.getBoundingClientRect().top;
+            
+            bounceInterval = setInterval(() => {
+                const maxX = window.innerWidth - noBtn.offsetWidth;
+                const maxY = window.innerHeight - noBtn.offsetHeight;
+
+                posX += velocityX;
+                posY += velocityY;
+
+                // 화면 끝에 닿으면 방향 반전
+                if (posX <= 0 || posX >= maxX) velocityX *= -1;
+                if (posY <= 0 || posY >= maxY) velocityY *= -1;
+
+                // 영역 이탈 방지 보정
+                posX = Math.max(0, Math.min(posX, maxX));
+                posY = Math.max(0, Math.min(posY, maxY));
+
+                noBtn.style.left = `${posX}px`;
+                noBtn.style.top = `${posY}px`;
+            }, 25); // 25ms마다 이동 (꽤 빠름!)
+        }
+
+        // YES 비 내리는 함수
+        function startYesRain() {
+            for(let i = 0; i < 60; i++) {
+                setTimeout(() => {
+                    let rain = document.createElement('div');
+                    rain.innerText = '¡SÍ! 💖';
+                    rain.classList.add('rain');
+                    rain.style.left = Math.random() * 90 + 'vw';
+                    rain.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+                    document.body.appendChild(rain);
+                }, i * 50); // 약간의 시차를 두고 떨어짐
+            }
+        }
+
+        // 성공 화면 띄우기 (YES 버튼 공통 로직)
+        function showSuccess() {
+            qPage.classList.add('hidden');
+            sPage.classList.remove('hidden');
+        }
+
+        // --- No 버튼 클릭 시 9단계 핵심 로직 ---
         noBtn.addEventListener('click', () => {
             noClickCount++;
             
-            // 1. YES 버튼 계속 키우기
-            yesFontSize += 0.5;
-            yesPadY += 8;
-            yesPadX += 15;
-            yesBtn.style.fontSize = `${yesFontSize}rem`;
-            yesBtn.style.padding = `${yesPadY}px ${yesPadX}px`;
+            // 텍스트 업데이트
+            if(noClickCount <= 9) {
+                noBtn.innerText = messages[noClickCount - 1];
+            }
+
+            // 1~4단계: No는 작아지고, Yes는 커짐
+            if (noClickCount <= 4) {
+                noScale -= 0.15;
+                yesScale += 0.4;
+                noBtn.style.transform = `scale(${noScale})`;
+                yesBtn.style.transform = `scale(${yesScale})`;
+                if(noClickCount === 2) mainEmoji.innerText = "🥺🩺";
+                if(noClickCount === 4) mainEmoji.innerText = "🚑💦";
+            } 
             
-            // 2. 메시지 변경
-            if(noClickCount <= messages.length) {
-                noBtn.innerText = messages[noClickCount-1];
-            } else {
-                noBtn.innerText = "¡Atrápame si puedes! 😜"; // 날 잡아봐라!
+            // 5~6단계: 화면 안에서 랜덤 텔레포트
+            else if (noClickCount === 5 || noClickCount === 6) {
+                // 이전 크기 효과 무시하고 원래 크기로 돌아온 채로 텔레포트
+                noBtn.style.transform = `scale(1)`; 
+                teleportButton();
+            } 
+            
+            // 7단계: Yes와 위치 바꾸기
+            else if (noClickCount === 7) {
+                noBtn.style.position = 'static'; // 텔레포트 풀고 다시 박스 안으로
+                btnContainer.style.flexDirection = 'row-reverse'; // CSS로 간단히 위치 스왑!
+                mainEmoji.innerText = "👀⁉️";
+            } 
+            
+            // 8단계: 튕겨 다니기 모드 돌입
+            else if (noClickCount === 8) {
+                noBtn.style.position = 'fixed';
+                mainEmoji.innerText = "🏃‍♀️💨";
+                startBouncing();
+            } 
+            
+            // 9단계: 튕김 멈춤, YES로 변신, 비 내리기!
+            else if (noClickCount >= 9) {
+                clearInterval(bounceInterval); // 튕기기 멈춤
+                noBtn.style.position = 'static'; // 원래 자리로
+                btnContainer.style.flexDirection = 'row'; // 위치 원상복구
+                
+                // NO를 YES로 완벽 위장
+                noBtn.style.background = 'var(--main-pink)';
+                noBtn.style.boxShadow = '0 4px 15px rgba(255, 107, 129, 0.4)';
+                
+                // 쏟아지는 YES 비!
+                startYesRain();
+                mainEmoji.innerText = "🥰🎉";
+                
+                // 이제부터 이 버튼도 YES의 역할을 함
+                noBtn.addEventListener('click', showSuccess);
             }
-
-            // 3. 이모지 변경
-            if(noClickCount === 2) mainEmoji.innerText = "🥺🩺";
-            if(noClickCount === 4) mainEmoji.innerText = "🚑💦";
-            if(noClickCount === 6) mainEmoji.innerText = "😭💖";
-
-            // 4. 클릭할 때마다 도망가기
-            moveNoButton();
-
-            // 5. 2번 이상 누르면 악랄한 '도망 모드' 발동
-            if(noClickCount >= 2) {
-                dodgeMode = true;
-            }
         });
 
-        // [PC] 마우스가 버튼 근처에 오면 도망가기
-        noBtn.addEventListener('mouseenter', () => {
-            if (dodgeMode) moveNoButton();
-        });
+        // 진짜 YES 버튼 클릭 이벤트
+        yesBtn.addEventListener('click', showSuccess);
 
-        // [모바일] 손가락으로 터치하려고 하면 클릭되기도 전에 도망가기
-        noBtn.addEventListener('touchstart', (e) => {
-            if (dodgeMode) {
-                moveNoButton();
-                e.preventDefault(); // 실제 클릭(터치)이 인식되지 않도록 막음
-            }
-        });
-
-        // YES 버튼 클릭 시 성공 화면
-        yesBtn.addEventListener('click', () => {
-            qPage.classList.add('hidden');
-            sPage.classList.remove('hidden');
-        });
     </script>
 </body>
 </html>
